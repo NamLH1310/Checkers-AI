@@ -35,12 +35,12 @@ def minimax(
         game_state: Board,
         depth: int,
         max_player: bool,
-            ) -> tuple[float, Board]:
+            ) -> tuple[float, Optional[Board]]:
 
-    if depth == 0 or game_state.has_winner():
-        return game_state.eval(), game_state
+    if depth == 0 or game_state is not None and game_state.has_winner():
+        return game_state.eval1(), game_state
 
-    best_move: Board
+    best_move = None
 
     if max_player:
         max_eval = -INF

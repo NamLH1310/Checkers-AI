@@ -8,6 +8,12 @@ ROWS = COLS = 8
 
 SQUARE_SIZE = WIDTH//COLS
 
+WHITE_HALVES = (ROWS - 2)//2
+
+RED_HALVES = WHITE_HALVES + 1
+
+NUM_PIECES = ROWS*WHITE_HALVES//2
+
 FPS = 60
 
 rgb = lambda r, g, b: (r, g, b)

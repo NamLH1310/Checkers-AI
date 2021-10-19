@@ -2,7 +2,8 @@
 
 from typing import Optional
 import pygame
-from constants import BLACK, RED, ROWS, COLS, SQUARE_SIZE, WHITE, BLUE, YELLOW
+from constants import BLACK, RED, ROWS, COLS,\
+                    SQUARE_SIZE, WHITE, YELLOW, WHITE_HALVES, RED_HALVES, NUM_PIECES
 from piece import Piece
 
 empty = None
@@ -10,7 +11,7 @@ empty = None
 class Board:
     def __init__(self):
         self.board = [[empty for _ in range(ROWS)] for _ in range(COLS)]
-        self.red_left = self.white_left = 12
+        self.red_left = self.white_left = NUM_PIECES
         self.red_kings = self.white_kings = 0
         self.create_board()
 
@@ -25,14 +26,12 @@ class Board:
 
     def create_board(self):
         board = self.board
-        white_limit = (ROWS - 2)//2
-        red_limit = white_limit + 1
         for row in range(ROWS):
             for col in range(COLS):
                 if col % 2 == ((row + 1) % 2):
-                    if row < white_limit:
+                    if row < WHITE_HALVES:
                         board[row][col] = Piece(row, col, WHITE)
-                    elif row > red_limit:
+                    elif row > RED_HALVES:
                         board[row][col] = Piece(row, col, RED)
 
 
@@ -44,12 +43,12 @@ class Board:
 
         piece.move(row, col)
 
-        if row == ROWS - 1 or row == 0:
-            piece.make_king()
+        if (row == ROWS - 1 or row == 0) and not piece.is_king:
             if piece.color == WHITE:
                 self.white_kings += 1
             else:
                 self.red_kings += 1
+            piece.make_king()
 
 
     def get_piece(self, row: int, col: int) -> Optional[Piece]:
@@ -150,7 +149,7 @@ class Board:
 
                 if last:
                     if step == -1:
-                        row = max(r - 3, 0)
+                        row = max(r - 3, -1)
                     else:
                         row = min(r + 3, ROWS)
                     moves.update(
@@ -242,21 +241,45 @@ class Board:
 
     def draw_board(self, win: pygame.Surface) -> None:
         self.draw_squares(win)
-        for row in range(ROWS):
-            for col in range(COLS):
-                piece = self.board[row][col]
-                if piece is not empty:
-                    piece.draw_piece(win)
+
+        for row in self.board:
+            for piece in list(filter(lambda piece: piece is not empty, row)):
+                piece.draw_piece(win)
 
 
-    def eval(self) -> float:
-        return self.white_left - self.red_left + self.white_kings*0.5 - self.red_kings*0.5
+    def eval1(self) -> float:
+        max_factor = self.white_left + self.white_kings*2
+        min_factor = self.red_left + self.red_kings*2
+        return max_factor - min_factor
+
+
+    def eval2(self) -> float:
+        max_factor = min_factor = 0
+        for row in self.board:
+            for piece in list(filter(lambda piece: piece is not empty, row)):
+                if piece == WHITE:
+                    if piece.row > WHITE_HALVES:
+                        max_factor += 10 if piece.is_king else 7
+                    else:
+                        max_factor += 10 if piece.is_king else 5
+                else:
+                    if piece.row < RED_HALVES:
+                        min_factor += 10 if piece.is_king else 7
+                    else:
+                        min_factor += 10 if piece.is_king else 5
+
+        return (max_factor - min_factor)//(self.white_left + self.red_left)
+
+
+    def eval3(self) -> float:
+        # TODO: Evaluation for the end game
+        max_factor = min_factor = 0
+
+        return max_factor - min_factor
 
     def get_all_pieces(self, color: tuple) -> list:
         pieces = []
         for row in self.board:
-            for piece in row:
-                if piece is not empty and piece.color == color:
-                    pieces.append(piece)
+            pieces += list(filter(lambda piece: piece is not empty and piece.color == color, row))
 
         return pieces
